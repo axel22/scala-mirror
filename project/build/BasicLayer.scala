@@ -111,7 +111,7 @@ abstract class BasicLayer(val info:ProjectInfo,val versionNumber:String, previou
     def label = "["+layer.name+"] library"
     def options: Seq[String] = Seq("-sourcepath", pathConfig.sources.absolutePath.toString)
     def dependencies = Nil
-    override def classpath = super.classpath +++ forkJoinJar
+    override def classpath = super.classpath +++ forkJoinJar +++ ropesJar
 
     def copyDestination = outputDirectory
     def filesToCopy = getResources(srcDir)
@@ -128,7 +128,7 @@ abstract class BasicLayer(val info:ProjectInfo,val versionNumber:String, previou
     private def bootClassPath : String = {
       System.getProperty("sun.boot.class.path")
     }
-    override def classpath: PathFinder = super.classpath +++ fjbgJar +++ msilJar +++ jlineJar +++ antJar +++ forkJoinJar
+    override def classpath: PathFinder = super.classpath +++ fjbgJar +++ msilJar +++ jlineJar +++ antJar +++ forkJoinJar +++ ropesJar
     def options  = Seq("-bootclasspath",bootClassPath)
     def dependencies = if (minimalCompilation) libraryConfig::Nil else libraryConfig::actorsConfig::dbcConfig::swingConfig::Nil
 

@@ -11,6 +11,7 @@ abstract class ScalaBuildProject extends Project{
 
   lazy val lib = projectRoot / "lib"
   lazy val forkJoinJar = lib / forkjoinJarName
+  lazy val ropesJar = lib / ropesJarName
   lazy val jlineJar = lib / jlineJarName
   lazy val antJar = lib / "ant" / "ant.jar"
   lazy val fjbgJar = lib / fjbgJarName
@@ -33,6 +34,6 @@ object ScalaBuildProject {
   val msilJarName = "msil.jar"
   val jlineJarName = "jline.jar"
   val forkjoinJarName = "forkjoin.jar"
-
+  val ropesJarName = "ropes.jar"
 
 }

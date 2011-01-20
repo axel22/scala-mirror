@@ -165,9 +165,9 @@ class ScalaSBTBuilder(val info: ProjectInfo) extends Project with ReflectiveProj
 
     override lazy val packingDestination:Path = outputRootPath/ "pack"
     
-    override def libraryToCopy = jlineJar::Nil
-    override def compilerAdditionalJars = msilJar::fjbgJar::Nil
-    override def libraryAdditionalJars = forkJoinJar::Nil
+    override def libraryToCopy = ropesJar::jlineJar::Nil
+    override def compilerAdditionalJars = ropesJar::msilJar::fjbgJar::Nil
+    override def libraryAdditionalJars = ropesJar::forkJoinJar::Nil
     
     override def cleaningList = packedStarrOutput::super.cleaningList
     
@@ -218,7 +218,7 @@ class ScalaSBTBuilder(val info: ProjectInfo) extends Project with ReflectiveProj
     /*
      * Defining here the creation of the binaries for quick and pack
      */
-    private lazy val quickBinClasspath = libraryOutput::actorsOutput::dbcOutput::swingOutput::compilerOutput::scalapOutput::forkJoinJar::fjbgJar::msilJar::jlineJar::Nil
+    private lazy val quickBinClasspath = libraryOutput::actorsOutput::dbcOutput::swingOutput::compilerOutput::scalapOutput::ropesJar::forkJoinJar::fjbgJar::msilJar::jlineJar::Nil
     private lazy val packBinClasspath  = Nil
     lazy val binQuick = tools(layerOutput / "bin", quickBinClasspath).dependsOn(finishLayer)
     lazy val binPack = tools(packingDestination / "bin", packBinClasspath).dependsOn(pack)
