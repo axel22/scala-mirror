@@ -90,7 +90,7 @@ self: EnvironmentPassingCombiner[Char, ParRope] =>
       rope = rope.append(sb)
     }
     
-    new ParRope(rope)
+    new ParRope(rope.rebalance())
   }
   
   def size = chain.foldLeft(0)(_ + _.length)
