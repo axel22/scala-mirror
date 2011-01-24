@@ -22,14 +22,29 @@ class SyncVar[A] {
     while (!isDefined) wait()
     value
   }
-
+  
+  /** Waits for this SyncVar to become defined at least for
+   *  `timeout` milliseconds (possibly more), and gets its
+   *  value.
+   *  
+   *  @param timeout     the amount of milliseconds to wait
+   *  @return            `None` if variable is undefined after `timeout`, `Some(value)` otherwise
+   */
   def get(timeout: Long): Option[A] = synchronized {
-    if (!isDefined) {
-      try wait(timeout)
-      catch { case _: InterruptedException => () }
+    if (timeout == 0L) Some(get)
+    else {
+      val start = System.currentTimeMillis
+      var left = timeout
+      while (!isDefined && left > 0) {
+        wait(left)
+        if (!isDefined) {
+          val elapsed = System.currentTimeMillis - start
+          left = timeout - elapsed
+        }
+      }
+      if (isDefined) Some(value)
+      else None
     }
-    if (isDefined) Some(value)
-    else None
   }
 
   def take() = synchronized {
