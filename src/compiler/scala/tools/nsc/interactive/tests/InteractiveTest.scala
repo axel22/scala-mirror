@@ -93,20 +93,41 @@ abstract class InteractiveTest {
     }
     buf.toList
   }
+  
+  /** Should askAllSources wait for each ask to finish before issueing the next? */
+  val synchronousRequests = true
 
   /** Perform an operation on all sources at all positions that match the given
    *  marker string. For instance, askAllSources("/*!*/")(askTypeAt)(println) would
    *  ask the tyep at all positions marked with /*!*/ and println the result.
    */
-  def askAllSources[T](marker: String)(askAt: Position => Response[T])(f: (Position, T) => Unit) {
+  def askAllSourcesAsync[T](marker: String)(askAt: Position => Response[T])(f: (Position, T) => Unit) {
     val positions = allPositionsOf(str = marker).valuesIterator.toList.flatten
     val responses = for (pos <- positions) yield askAt(pos)
 
-    for ((pos, r) <- positions zip responses) r.get(TIMEOUT) match {
-      case Some(Left(members)) =>
-        f(pos, members)
+    for ((pos, r) <- positions zip responses) withResponse(pos, r)(f)
+  }
+
+  /** Synchronous version of askAllSources. Each position is treated in turn, waiting for the
+   *  response before going to the next one. 
+   */
+  def askAllSourcesSync[T](marker: String)(askAt: Position => Response[T])(f: (Position, T) => Unit) {
+    val positions = allPositionsOf(str = marker).valuesIterator.toList.flatten
+    for (pos <- positions) withResponse(pos, askAt(pos))(f)
+  }
+  
+  def askAllSources[T] = if (synchronousRequests) askAllSourcesSync[T] _ else askAllSourcesAsync[T] _
+  
+  /** Return the filename:line:col version of this position. */
+  def showPos(pos: Position): String = 
+    "%s:%d:%d".format(pos.source.file.name, pos.line, pos.column)
+  
+  protected def withResponse[T](pos: Position, response: Response[T])(f: (Position, T) => Unit) {
+    response.get(TIMEOUT) match {
+      case Some(Left(t)) =>
+        f(pos, t)
       case None =>
-        println("TIMEOUT: " + r)
+        println("TIMEOUT: " + showPos(pos))
       case Some(r) =>
         println("ERROR: " + r)
     }
@@ -126,7 +147,10 @@ abstract class InteractiveTest {
       println("[response] aksTypeCompletion at " + (pos.line, pos.column))
       // we skip getClass because it changed signature between 1.5 and 1.6, so there is no
       // universal check file that we can provide for this to work
-      println(members.sortBy(_.sym.name.toString).filterNot(_.sym.name.toString == "getClass").mkString("\n"))
+      println("retreived %d members".format(members.size))
+      compiler ask { () =>
+        println(members.sortBy(_.sym.name.toString).filterNot(_.sym.name.toString == "getClass").mkString("\n"))
+      }
     }
   }
   
@@ -140,7 +164,7 @@ abstract class InteractiveTest {
       r
     } { (pos, tree) =>
       println("[response] askTypeAt at " + (pos.line, pos.column))
-      println(tree)
+      compiler.ask(() => println(tree))
     }
   }
 

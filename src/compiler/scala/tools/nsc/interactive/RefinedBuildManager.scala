@@ -101,7 +101,7 @@ class RefinedBuildManager(val settings: Settings) extends Changes with BuildMana
   private def update(files: Set[AbstractFile]) = {
     val coll: mutable.Map[AbstractFile, immutable.Set[AbstractFile]] =
         mutable.HashMap[AbstractFile, immutable.Set[AbstractFile]]()
-    compiler.reporter.reset
+    compiler.reporter.reset()
         
     // See if we really have corresponding symbols, not just those
     // which share the name
@@ -180,6 +180,8 @@ class RefinedBuildManager(val settings: Settings) extends Changes with BuildMana
     }
 
     update0(files)
+    // remove the current run in order to save some memory
+    compiler.dropRun()
   }
 
   // Attempt to break the cycling reference deps as soon as possible and reduce

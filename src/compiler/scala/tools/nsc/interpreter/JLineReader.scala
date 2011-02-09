@@ -9,35 +9,62 @@ package interpreter
 import java.io.File
 import scala.tools.jline.console.ConsoleReader
 import scala.tools.jline.console.completer._
+import session._
+import scala.collection.JavaConverters._
+import Completion._
+import io.Streamable.slurp
 
 /** Reads from the console using JLine */
-class JLineReader(interpreter: Interpreter) extends InteractiveReader {
-  def this() = this(null)
+class JLineReader(val completion: Completion) extends InteractiveReader {
+  val interactive = true
+  lazy val history: JLineHistory = JLineHistory()
+  lazy val keyBindings =
+    try KeyBinding parse slurp(term.getDefaultBindings)
+    catch { case _: Exception => Nil }
+
+  private def term = consoleReader.getTerminal()
+  def reset() = term.reset()
+  def init()  = term.init()
   
-  override lazy val history    = Some(History())
-  override lazy val completion = Option(interpreter) map (x => new Completion(x))
-  override def reset()         = consoleReader.getTerminal().reset()
-  override def init()          = consoleReader.getTerminal().init()
-  override def redrawLine()    = {
-    consoleReader.flush()
-    consoleReader.drawLine()
-    consoleReader.flush()
+  def scalaToJline(tc: ScalaCompleter): Completer = new Completer {
+    def complete(_buf: String, cursor: Int, candidates: JList[CharSequence]): Int = {
+      val buf   = if (_buf == null) "" else _buf      
+      val Candidates(newCursor, newCandidates) = tc.complete(buf, cursor)
+      newCandidates foreach (candidates add _)
+      newCursor
+    }
+  }
+  
+  def argCompletor: ArgumentCompleter = {
+    val c = new ArgumentCompleter(new JLineDelimiter, scalaToJline(completion.completer()))
+    c setStrict false
+    c
   }
   
   val consoleReader = {
     val r = new ConsoleReader()
-    r setBellEnabled false 
-    history foreach { r setHistory _.jhistory }
-    completion foreach { c =>
-      r addCompleter c.jline
-      r setAutoprintThreshold 250 // max completion candidates without warning
+    r setBellEnabled false
+    if (history ne NoHistory)
+      r setHistory history
+    
+    if (completion ne NoCompletion) {
+      r addCompleter argCompletor
+      r setAutoprintThreshold 400 // max completion candidates without warning
     }
 
     r
   }
   
-  override def currentLine: String = consoleReader.getCursorBuffer.buffer.toString
+  def currentLine: String = consoleReader.getCursorBuffer.buffer.toString
+  def redrawLine() = {
+    consoleReader.flush()
+    consoleReader.drawLine()
+    consoleReader.flush()
+  }
   def readOneLine(prompt: String) = consoleReader readLine prompt
-  val interactive = true
 }
 
+object JLineReader {
+  def apply(intp: IMain): JLineReader = apply(new JLineCompletion(intp))
+  def apply(comp: Completion): JLineReader = new JLineReader(comp)
+}

@@ -1947,8 +1947,7 @@ A type's typeSymbol should never be inspected directly.
 
   object TypeRef extends TypeRefExtractor {
     def apply(pre: Type, sym: Symbol, args: List[Type]): Type = {
-      class rawTypeRef extends TypeRef(pre, sym, args) with UniqueType
-      unique(new rawTypeRef)
+      unique(new TypeRef(pre, sym, args) with UniqueType)
     }
   }
 
@@ -2611,6 +2610,8 @@ A type's typeSymbol should never be inspected directly.
       var sym1 = rebind(pre, sym)
       val pre1 = removeSuper(pre, sym1)
       if (pre1 ne pre) sym1 = rebind(pre1, sym1)
+      // why not do the hash-consing in the SingleType.apply()
+      //  factory, like the other UniqueTypes?
       unique(new SingleType(pre1, sym1) with UniqueType)
     }
   }
@@ -3809,7 +3810,18 @@ A type's typeSymbol should never be inspected directly.
       } else if (sym.isModuleClass) {
         val adaptedSym = adaptToNewRun(pre, sym.sourceModule)
         // Handle nested objects properly
-        if (adaptedSym.isLazy) adaptedSym.lazyAccessor else adaptedSym.moduleClass
+        val result0 = if (adaptedSym.isLazy) adaptedSym.lazyAccessor else adaptedSym.moduleClass
+        val result = if (result0 == NoSymbol)
+          // The only possible way we got here is when
+          // object is defined inside the method and unfortunately
+          // we have no way of retrieving that information (and using it)
+          // at this point, so just use the old symbol.
+          // This also means that sym.sourceModule == adaptedSym since 
+          // pre == NoPrefix. see #4215
+          sym
+        else result0
+
+        result
       } else if ((pre eq NoPrefix) || (pre eq NoType) || sym.isPackageClass) {
         sym
       } else {

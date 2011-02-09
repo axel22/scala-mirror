@@ -45,10 +45,12 @@ trait Typers extends Modes {
   final val shortenImports = false
 
   def resetTyper() {
+    //println("resetTyper called")
     resetContexts()
     resetNamer()
     resetImplicits()
     transformed.clear()
+    resetSynthetics()
   }
 
   object UnTyper extends Traverser {
@@ -2013,7 +2015,7 @@ trait Typers extends Modes {
 
     def typedImport(imp : Import) : Import = (transformed remove imp) match {
       case Some(imp1: Import) => imp1
-      case None => println("unhandled import: "+imp+" in "+unit); imp
+      case None => log("unhandled import: "+imp+" in "+unit); imp
     }
 
     def typedStats(stats: List[Tree], exprOwner: Symbol): List[Tree] = {
@@ -2507,7 +2509,7 @@ trait Typers extends Modes {
           
 /* --- end unapply  --- */
         case _ =>
-          errorTree(tree, fun+" of type "+fun.tpe+" does not take parameters")
+          errorTree(tree, fun.tpe+" does not take parameters")
       }
     }
 
@@ -3486,7 +3488,7 @@ trait Typers extends Modes {
           // try to expand according to Dynamic rules.
 
           if (qual.tpe.widen.typeSymbol isNonBottomSubClass DynamicClass) {
-            var dynInvoke = Apply(Select(qual, nme.invokeDynamic), List(Literal(Constant(name.decode))))
+            var dynInvoke = Apply(Select(qual, nme.applyDynamic), List(Literal(Constant(name.decode))))
             context.tree match {
               case Apply(tree1, args) if tree1 eq tree => 
                 ;

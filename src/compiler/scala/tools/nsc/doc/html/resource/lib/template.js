@@ -2,12 +2,20 @@
 // code by Gilles Dubochet with contributions by Pedro Furlanetto
 
 $(document).ready(function(){
-    var prefilters = $("#ancestors > ol > li").filter(function(){
-        var name = $(this).attr("name");
-        return name == "scala.Any" || name == "scala.AnyRef";
-    });
-    prefilters.removeClass("in");
-    prefilters.addClass("out");
+    var isHiddenClass;
+    if (document.title == 'scala.AnyRef') {
+        isHiddenClass = function (name) {
+            return name == 'scala.Any';
+        };
+    } else {
+        isHiddenClass = function (name) {
+            return name == 'scala.Any' || name == 'scala.AnyRef';
+        };
+    }
+
+    $("#linearization li").filter(function(){
+        return isHiddenClass($(this).attr("name"));
+    }).removeClass("in").addClass("out");
     filter();
 
     var input = $("#textfilter input");
@@ -23,7 +31,7 @@ $(document).ready(function(){
         filter();
     });
 
-    $("#ancestors > ol > li").click(function(){
+    $("#linearization li").click(function(){
         if ($(this).hasClass("in")) {
             $(this).removeClass("in");
             $(this).addClass("out");
@@ -35,14 +43,14 @@ $(document).ready(function(){
         filter();
     });
     $("#ancestors > ol > li.hideall").click(function() {
-        $("#ancestors > ol > li.in").removeClass("in").addClass("out");
+        $("#linearization li.in").removeClass("in").addClass("out");
+        $("#linearization li:first").removeClass("out").addClass("in");
         filter();
     })
     $("#ancestors > ol > li.showall").click(function() {
         var filtered =
-            $("#ancestors > ol > li.out").filter(function() {
-                var name = $(this).attr("name");
-                return !(name == "scala.Any" || name == "scala.AnyRef");
+            $("#linearization li.out").filter(function() {
+                return ! isHiddenClass($(this).attr("name"));
             });
         filtered.removeClass("out").addClass("in");
         filter();
